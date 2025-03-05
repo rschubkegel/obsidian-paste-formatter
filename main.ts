@@ -192,8 +192,9 @@ class SampleSettingTab extends PluginSettingTab {
 						.inputEl.addClass("paste-formatter-replacement-input")
 				);
 
-			// Rule toggle and delete button
+			// Rule toggle
 			new Setting(ruleSection)
+				.setName("Enabled")
 				.addToggle((toggle) =>
 					toggle
 						.setValue(rule.isEnabled)
@@ -204,20 +205,24 @@ class SampleSettingTab extends PluginSettingTab {
 							].isEnabled = value;
 							await this.plugin.saveSettings();
 						})
-				)
-				.addExtraButton((button) =>
-					button
-						.setIcon("trash")
-						.setTooltip("Delete Rule")
-						.onClick(async () => {
-							this.plugin.settings.formattingRules.splice(
-								index,
-								1
-							);
-							await this.plugin.saveSettings();
-							this.display();
-						})
 				);
+
+				// Delete button
+				new Setting(ruleSection)
+					.setName("Delete Rule")
+					.addButton((button) =>
+						button
+							.setIcon("trash")
+							.setTooltip("Delete Rule")
+							.onClick(async () => {
+								this.plugin.settings.formattingRules.splice(
+									index,
+									1
+								);
+								await this.plugin.saveSettings();
+								this.display();
+							})
+					);
 
 			// Separator
 			if (index < this.plugin.settings.formattingRules.length - 1) {
