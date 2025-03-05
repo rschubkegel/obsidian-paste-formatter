@@ -76,7 +76,7 @@ export default class PasteFormatterPlugin extends Plugin {
 
 		// Check each user-defined rule to see if the clipboard content matches any regex
 		for (let i = 0; i < this.settings.formattingRules.length; i++) {
-			const { regex: regexString, replacement } =
+			const { regex: regexString, replacement: replacementString } =
 				this.settings.formattingRules[i];
 
 			// Compile regex
@@ -87,10 +87,10 @@ export default class PasteFormatterPlugin extends Plugin {
 			if (!match) continue;
 
 			// Make sure that the groups match the placeholders in the replacement string
-			const placeholderNames = replacement.match(/\$\{([^}]+)\}/g);
+			const placeholderNames = replacementString.match(/\$\{([^}]+)\}/g);
 
 			// Replace placeholders with matched groups and return formatted text
-			let result = replacement;
+			let replacement = replacementString;
 			if (placeholderNames) {
 				for (let j = 0; j < placeholderNames.length; j++) {
 					const placeholderName = placeholderNames[j].substring(
@@ -99,14 +99,14 @@ export default class PasteFormatterPlugin extends Plugin {
 					);
 					const group = match.groups?.[placeholderName];
 					if (group) {
-						result = result.replace(placeholderNames[j], group);
+						replacement = replacement.replace(placeholderNames[j], group);
 					}
 				}
 			}
 
 			// Replace selection
 			event.preventDefault();
-			editor.replaceSelection(result);
+			editor.replaceSelection(clipboardText.replace(regex, replacement));
 			break;
 		}
 	}
