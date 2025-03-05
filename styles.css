@@ -1,3 +1,8 @@
+.paste-formatter-rule-section .setting-item {
+	/* Force horizontal row for mobile layout */
+	flex-direction: row !important;
+}
+
 .paste-formatter-regex,
 .paste-formatter-replacement {
 	flex-wrap: wrap;
