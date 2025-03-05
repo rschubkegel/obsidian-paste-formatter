@@ -1,134 +1,230 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, Plugin, PluginSettingTab, Setting } from "obsidian";
 
-// Remember to rename these classes and interfaces!
-
-interface MyPluginSettings {
-	mySetting: string;
+interface FormattingRule {
+	/**
+	 * Friendly name for this rule.
+	 */
+	name: string;
+	/**
+	 * Regular expression for this rule.
+	 */
+	regex: string;
+	/**
+	 * Formatting string used when formatting pasted content.
+	 */
+	replacement: string;
+	/**
+	 * Allows individual rules to be enabled/disabled.
+	 */
+	isEnabled: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+interface PasteFormatterSettings {
+	formattingRules: FormattingRule[];
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+const DEFAULT_SETTINGS: PasteFormatterSettings = {
+	formattingRules: [
+		{
+			name: "Jira Ticket",
+			regex: String.raw`(?<url>https?://[a-zA-Z0-9-]+\.atlassian\.net/browse/(?<key>[A-Z]+-\d+))`,
+			replacement: "[${key}](${url})",
+			isEnabled: true,
+		},
+		{
+			name: "GitHub PR",
+			regex: String.raw`(?<url>https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)\/pull\/(?<pr>\d+)(?:\S*)?)`,
+			replacement: "[PR ${pr}](${url})",
+			isEnabled: true,
+		},
+	],
+};
+
+export default class PasteFormatterPlugin extends Plugin {
+	settings: PasteFormatterSettings;
 
 	async onload() {
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
+		// Add plugin settings tab
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+		// Add the main paste event handler
+		this.registerEvent(
+			this.app.workspace.on("editor-paste", this.handlePaste.bind(this))
+		);
+
+		// Add command to paste without formatting (one-time override)
+		this.addCommand({
+			id: "paste-without-formatting",
+			name: "Paste without formatting",
+			editorCallback: (editor: Editor) => {
+				navigator.clipboard.readText().then((text) => {
+					editor.replaceSelection(text);
+				});
+			},
 		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
-	onunload() {
-
-	}
+	onunload() {}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign(
+			{},
+			DEFAULT_SETTINGS,
+			await this.loadData()
+		);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+	async handlePaste(event: ClipboardEvent, editor: Editor) {
+		// Get clipboard text
+		const clipboardText = event.clipboardData?.getData("text/plain");
 
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+		// Nothing to format!
+		if (!clipboardText) return;
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+		// Check each user-defined rule to see if the clipboard content matches any regex
+		for (let i = 0; i < this.settings.formattingRules.length; i++) {
+			const { regex: regexString, replacement } =
+				this.settings.formattingRules[i];
+
+			// Compile regex
+			const regex = new RegExp(regexString);
+
+			// Check if regex matches
+			const match = regex.exec(clipboardText);
+			if (!match) continue;
+
+			// Make sure that the groups match the placeholders in the replacement string
+			const placeholderNames = replacement.match(/\$\{([^}]+)\}/g);
+
+			// Replace placeholders with matched groups and return formatted text
+			let result = replacement;
+			if (placeholderNames) {
+				for (let j = 0; j < placeholderNames.length; j++) {
+					const placeholderName = placeholderNames[j].substring(
+						2,
+						placeholderNames[j].length - 1
+					);
+					const group = match.groups?.[placeholderName];
+					if (group) {
+						result = result.replace(placeholderNames[j], group);
+					}
+				}
+			}
+
+			// Replace selection
+			event.preventDefault();
+			editor.replaceSelection(result);
+			break;
+		}
 	}
 }
 
 class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+	plugin: PasteFormatterPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: PasteFormatterPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
+		// Add a section for each formatting rule
+		this.plugin.settings.formattingRules.forEach((rule, index) => {
+			const ruleSection = containerEl.createEl("div", {
+				cls: "paste-formatter-rule-section",
+			});
+
+			// Rule name
+			new Setting(ruleSection)
+				.setName(rule.name)
+				.setDesc("Configure paste formatting rule")
+				.addToggle((toggle) =>
+					toggle.setValue(rule.isEnabled).onChange(async (value) => {
+						this.plugin.settings.formattingRules[index].isEnabled =
+							value;
+						await this.plugin.saveSettings();
+					})
+				)
+				.addExtraButton((button) =>
+					button
+						.setIcon("trash")
+						.setTooltip("Delete Rule")
+						.onClick(async () => {
+							this.plugin.settings.formattingRules.splice(
+								index,
+								1
+							);
+							await this.plugin.saveSettings();
+							this.display();
+						})
+				);
+
+			// Regex input
+			new Setting(ruleSection)
+				.setName("Regex Pattern")
+				.setDesc("Regular expression to match")
+				.setClass("paste-formatter-regex")
+				.addText((text) =>
+					text
+						.setPlaceholder("Enter regex pattern")
+						.setValue(rule.regex)
+						.onChange(async (value) => {
+							this.plugin.settings.formattingRules[index].regex =
+								value;
+							await this.plugin.saveSettings();
+						})
+						.inputEl.addClass("paste-formatter-regex-input")
+				);
+
+			// Replacement input
+			new Setting(ruleSection)
+				.setName("Replacement Pattern")
+				.setDesc(
+					"Replacement format (use ${group_name} for capture groups)"
+				)
+				.setClass("paste-formatter-replacement")
+				.addText((text) =>
+					text
+						.setPlaceholder("Enter replacement pattern")
+						.setValue(rule.replacement)
+						.onChange(async (value) => {
+							this.plugin.settings.formattingRules[
+								index
+							].replacement = value;
+							await this.plugin.saveSettings();
+						})
+						.inputEl.addClass("paste-formatter-replacement-input")
+				);
+
+			// Separator
+			containerEl.createEl("hr");
+		});
+
+		// Add new rule button
+		new Setting(containerEl).setName("Add New Rule").addButton((button) =>
+			button
+				.setButtonText("+ Add Formatting Rule")
+				.setCta()
+				.onClick(async () => {
+					this.plugin.settings.formattingRules.push({
+						name: "New Rule",
+						regex: "",
+						replacement: "",
+						isEnabled: true,
+					});
 					await this.plugin.saveSettings();
-				}));
+					this.display();
+				})
+		);
 	}
 }

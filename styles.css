@@ -1,8 +1,14 @@
-/*
+.paste-formatter-regex, .paste-formatter-replacement {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.paste-formatter-regex-input {
+  width: 100%;
+  min-width: min(100%, 500px);
+}
 
-If your plugin does not need CSS, delete this file.
-
-*/
+.paste-formatter-replacement-input {
+  width: 100%;
+  min-width: min(100%, 200px);
+}
