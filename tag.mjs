@@ -8,6 +8,7 @@ process.stdin.resume().once('data', () => {
   try {
     execSync(`git tag -a ${targetVersion} -m "${targetVersion}"`, { stdio: 'inherit' });
     execSync(`git push origin ${targetVersion}`, { stdio: 'inherit' });
+    process.exit(0);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
