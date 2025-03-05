@@ -1,14 +1,17 @@
-.paste-formatter-regex, .paste-formatter-replacement {
-  flex-wrap: wrap;
-  gap: 1rem;
+.paste-formatter-regex,
+.paste-formatter-replacement {
+	flex-wrap: wrap;
 }
 
-.paste-formatter-regex-input {
-  width: 100%;
-  min-width: min(100%, 500px);
+.paste-formatter-regex .setting-item-control {
+	flex-basis: 35rem;
 }
 
+.paste-formatter-regex .setting-item-control {
+	flex-basis: 25rem;
+}
+
+.paste-formatter-regex-input,
 .paste-formatter-replacement-input {
-  width: 100%;
-  min-width: min(100%, 200px);
+	flex-grow: 1;
 }

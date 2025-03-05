@@ -2,10 +2,6 @@ import { App, Editor, Plugin, PluginSettingTab, Setting } from "obsidian";
 
 interface FormattingRule {
 	/**
-	 * Friendly name for this rule.
-	 */
-	name: string;
-	/**
 	 * Regular expression for this rule.
 	 */
 	regex: string;
@@ -76,8 +72,14 @@ export default class PasteFormatterPlugin extends Plugin {
 
 		// Check each user-defined rule to see if the clipboard content matches any regex
 		for (let i = 0; i < this.settings.formattingRules.length; i++) {
-			const { regex: regexString, replacement: replacementString } =
-				this.settings.formattingRules[i];
+			const {
+				regex: regexString,
+				replacement: replacementString,
+				isEnabled,
+			} = this.settings.formattingRules[i];
+
+			// Skip disabled rules
+			if (!isEnabled) continue;
 
 			// Compile regex
 			const regex = new RegExp(regexString);
@@ -99,7 +101,10 @@ export default class PasteFormatterPlugin extends Plugin {
 					);
 					const group = match.groups?.[placeholderName];
 					if (group) {
-						replacement = replacement.replace(placeholderNames[j], group);
+						replacement = replacement.replace(
+							placeholderNames[j],
+							group
+						);
 					}
 				}
 			}
@@ -125,36 +130,30 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		// Add new rule button
+		new Setting(containerEl).setName("Add New Rule").addButton((button) =>
+			button
+				.setButtonText("+ Add Formatting Rule")
+				.setCta()
+				.onClick(async () => {
+					this.plugin.settings.formattingRules.push({
+						regex: "",
+						replacement: "",
+						isEnabled: true,
+					});
+					await this.plugin.saveSettings();
+					this.display();
+				})
+		);
+
+		// Separator
+		containerEl.createEl("hr");
+
 		// Add a section for each formatting rule
 		this.plugin.settings.formattingRules.forEach((rule, index) => {
 			const ruleSection = containerEl.createEl("div", {
 				cls: "paste-formatter-rule-section",
 			});
-
-			// Rule name
-			new Setting(ruleSection)
-				.setName(rule.name)
-				.setDesc("Configure paste formatting rule")
-				.addToggle((toggle) =>
-					toggle.setValue(rule.isEnabled).onChange(async (value) => {
-						this.plugin.settings.formattingRules[index].isEnabled =
-							value;
-						await this.plugin.saveSettings();
-					})
-				)
-				.addExtraButton((button) =>
-					button
-						.setIcon("trash")
-						.setTooltip("Delete Rule")
-						.onClick(async () => {
-							this.plugin.settings.formattingRules.splice(
-								index,
-								1
-							);
-							await this.plugin.saveSettings();
-							this.display();
-						})
-				);
 
 			// Regex input
 			new Setting(ruleSection)
@@ -193,25 +192,37 @@ class SampleSettingTab extends PluginSettingTab {
 						.inputEl.addClass("paste-formatter-replacement-input")
 				);
 
-			// Separator
-			containerEl.createEl("hr");
-		});
+			// Rule toggle and delete button
+			new Setting(ruleSection)
+				.addToggle((toggle) =>
+					toggle
+						.setValue(rule.isEnabled)
+						.setTooltip("Enabled")
+						.onChange(async (value) => {
+							this.plugin.settings.formattingRules[
+								index
+							].isEnabled = value;
+							await this.plugin.saveSettings();
+						})
+				)
+				.addExtraButton((button) =>
+					button
+						.setIcon("trash")
+						.setTooltip("Delete Rule")
+						.onClick(async () => {
+							this.plugin.settings.formattingRules.splice(
+								index,
+								1
+							);
+							await this.plugin.saveSettings();
+							this.display();
+						})
+				);
 
-		// Add new rule button
-		new Setting(containerEl).setName("Add New Rule").addButton((button) =>
-			button
-				.setButtonText("+ Add Formatting Rule")
-				.setCta()
-				.onClick(async () => {
-					this.plugin.settings.formattingRules.push({
-						name: "New Rule",
-						regex: "",
-						replacement: "",
-						isEnabled: true,
-					});
-					await this.plugin.saveSettings();
-					this.display();
-				})
-		);
+			// Separator
+			if (index < this.plugin.settings.formattingRules.length - 1) {
+				containerEl.createEl("hr");
+			}
+		});
 	}
 }

@@ -36,13 +36,13 @@ Transform pasted content automatically using custom regex rules.
 
 ### Example Rules
 
-#### Shorten Jira Ticket Links
-- Regex: `(?<url>https?://[a-zA-Z0-9-]+\.atlassian\.net/browse/(?<key>[A-Z]+-\d+))`
-- Replacement: `[${key}](${url})`
-
 #### Shorten GitHub PR Links
 - Regex: `(?<url>https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)\/pull\/(?<pr>\d+)(?:\S*)?)`
 - Replacement: `[PR ${pr}](${url})`
+
+#### Shorten Jira Ticket Links
+- Regex: `(?<url>https?://[a-zA-Z0-9-]+\.atlassian\.net/browse/(?<key>[A-Z]+-\d+))`
+- Replacement: `[${key}](${url})`
 
 ## Commands
 
