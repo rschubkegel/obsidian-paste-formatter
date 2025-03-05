@@ -24,20 +24,7 @@ interface PasteFormatterSettings {
 }
 
 const DEFAULT_SETTINGS: PasteFormatterSettings = {
-	formattingRules: [
-		{
-			name: "Jira Ticket",
-			regex: String.raw`(?<url>https?://[a-zA-Z0-9-]+\.atlassian\.net/browse/(?<key>[A-Z]+-\d+))`,
-			replacement: "[${key}](${url})",
-			isEnabled: true,
-		},
-		{
-			name: "GitHub PR",
-			regex: String.raw`(?<url>https?:\/\/(?:www\.)?github\.com\/([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+)\/pull\/(?<pr>\d+)(?:\S*)?)`,
-			replacement: "[PR ${pr}](${url})",
-			isEnabled: true,
-		},
-	],
+	formattingRules: [],
 };
 
 export default class PasteFormatterPlugin extends Plugin {
