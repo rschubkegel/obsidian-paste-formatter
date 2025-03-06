@@ -136,7 +136,7 @@ class SampleSettingTab extends PluginSettingTab {
 				.setButtonText("+ Add Formatting Rule")
 				.setCta()
 				.onClick(async () => {
-					this.plugin.settings.formattingRules.push({
+					this.plugin.settings.formattingRules.unshift({
 						regex: "",
 						replacement: "",
 						isEnabled: true,
@@ -207,22 +207,22 @@ class SampleSettingTab extends PluginSettingTab {
 						})
 				);
 
-				// Delete button
-				new Setting(ruleSection)
-					.setName("Delete Rule")
-					.addButton((button) =>
-						button
-							.setIcon("trash")
-							.setTooltip("Delete Rule")
-							.onClick(async () => {
-								this.plugin.settings.formattingRules.splice(
-									index,
-									1
-								);
-								await this.plugin.saveSettings();
-								this.display();
-							})
-					);
+			// Delete button
+			new Setting(ruleSection)
+				.setName("Delete Rule")
+				.addButton((button) =>
+					button
+						.setIcon("trash")
+						.setTooltip("Delete Rule")
+						.onClick(async () => {
+							this.plugin.settings.formattingRules.splice(
+								index,
+								1
+							);
+							await this.plugin.saveSettings();
+							this.display();
+						})
+				);
 
 			// Separator
 			if (index < this.plugin.settings.formattingRules.length - 1) {
