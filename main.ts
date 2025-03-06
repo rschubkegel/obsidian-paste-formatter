@@ -30,7 +30,7 @@ export default class PasteFormatterPlugin extends Plugin {
 		await this.loadSettings();
 
 		// Add plugin settings tab
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new PasteFormatterSettingTab(this.app, this));
 
 		// Add the main paste event handler
 		this.registerEvent(
@@ -117,7 +117,7 @@ export default class PasteFormatterPlugin extends Plugin {
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
+class PasteFormatterSettingTab extends PluginSettingTab {
 	plugin: PasteFormatterPlugin;
 
 	constructor(app: App, plugin: PasteFormatterPlugin) {

@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-paste-formatter",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "Plugin for Obsidian (https://obsidian.md) that formats pasted content",
 	"main": "main.js",
 	"scripts": {
